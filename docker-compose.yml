@@ -1,0 +1,55 @@
+version: '3'
+services:
+  web:
+    image: httpd
+    ports:
+      - "8080:80"
+    networks:
+      - efk
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: efk.httpd.access
+  
+  fluentd:
+    container_name: fluentd
+    build:
+      context: fluentd/
+      args:
+        FLUENTD_VERSION: $FLUENTD_VERSION
+    volumes:
+      - ./fluentd/config:/fluentd/etc
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    networks:
+      - efk
+    
+  elasticsearch:
+    container_name: elasticsearch
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    ports:
+      - "9200:9200"
+    networks:
+      - efk
+    
+  kibana:
+    container_name: kibana
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - ./kibana/config/:/usr/share/kibana/config
+    ports:
+      - "5601:5601"
+    networks:
+      - efk
+
+networks:
+  efk:
+    driver: bridge
